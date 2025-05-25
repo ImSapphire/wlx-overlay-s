@@ -306,7 +306,7 @@ pub fn openxr_run(
         if let Some(ref mut space_mover) = playspace {
             space_mover.update(
                 &mut overlays,
-                &app,
+                &mut app,
                 monado.as_mut().unwrap(), // safe
             );
         }
@@ -545,7 +545,7 @@ pub fn openxr_run(
                     }
                     SystemTask::ResetPlayspace => {
                         if let Some(ref mut playspace) = playspace {
-                            playspace.reset_offset(monado.as_mut().unwrap()); // safe
+                            playspace.reset_offset(&mut app, &mut overlays, monado.as_mut().unwrap()); // safe
                         }
                     }
                     SystemTask::ShowHide => {

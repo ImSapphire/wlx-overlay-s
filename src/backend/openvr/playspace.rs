@@ -163,14 +163,20 @@ impl PlayspaceMover {
         }
     }
 
-    pub fn reset_offset(&mut self, chaperone_mgr: &mut ChaperoneSetupManager, input: &InputState) {
+    pub fn reset_offset(&mut self, app: &mut AppState, overlays: &mut OverlayContainer<OpenVrOverlayData>, chaperone_mgr: &mut ChaperoneSetupManager) {
         let mut height = 1.6;
         if let Some(mat) = get_working_copy(&self.universe, chaperone_mgr) {
-            height = input.hmd.translation.y - mat.translation.y;
+            height = app.input_state.hmd.translation.y - mat.translation.y;
             if self.universe == ETrackingUniverseOrigin::TrackingUniverseStanding {
                 apply_chaperone_transform(mat, chaperone_mgr);
             }
         }
+
+        overlays.iter_mut().for_each(|overlay| {
+            if overlay.state.grabbable {
+                overlay.state.reset(app, false);
+            }
+        });
 
         let xform = if self.universe == ETrackingUniverseOrigin::TrackingUniverseSeated {
             Affine3A::from_translation(Vec3::NEG_Y * height)

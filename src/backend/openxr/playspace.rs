@@ -47,14 +47,14 @@ impl PlayspaceMover {
     pub fn update(
         &mut self,
         overlays: &mut OverlayContainer<OpenXrOverlayData>,
-        state: &AppState,
+        state: &mut AppState,
         monado: &mut Monado,
     ) {
         for pointer in &state.input_state.pointers {
             if pointer.now.space_reset {
                 if !pointer.before.space_reset {
                     log::info!("Space reset");
-                    self.reset_offset(monado);
+                    self.reset_offset(state, overlays, monado);
                 }
                 return;
             }
@@ -130,10 +130,10 @@ impl PlayspaceMover {
 
             let overlay_offset = data.pose.inverse().transform_vector3a(relative_pos) * -1.0;
 
+            state.anchor.translation += overlay_offset;
             overlays.iter_mut().for_each(|overlay| {
-                if overlay.state.grabbable {
-                    overlay.state.dirty = true;
-                    overlay.state.transform.translation += overlay_offset;
+                if overlay.state.want_visible {
+                    overlay.state.reset(state, false);
                 }
             });
 
@@ -160,7 +160,7 @@ impl PlayspaceMover {
         }
     }
 
-    pub fn reset_offset(&mut self, monado: &mut Monado) {
+    pub fn reset_offset(&mut self, app: &mut AppState, overlays: &mut OverlayContainer<OpenXrOverlayData>, monado: &mut Monado) {
         if self.drag.is_some() {
             log::info!("Space drag interrupted by manual reset");
             self.drag = None;
@@ -169,6 +169,13 @@ impl PlayspaceMover {
             log::info!("Space rotate interrupted by manual reset");
             self.rotate = None;
         }
+
+        app.anchor.translation -= self.last_transform.translation;
+        overlays.iter_mut().for_each(|overlay| {
+            if overlay.state.want_visible {
+                overlay.state.reset(app, false);
+            }
+        });
 
         self.last_transform = Affine3A::IDENTITY;
         self.apply_offset(self.last_transform, monado);
